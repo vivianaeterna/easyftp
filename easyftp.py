@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, simpledialog
 import paramiko
 from ftplib import FTP
 import os
@@ -54,7 +54,20 @@ def upload_file():
         messagebox.showerror("Error", "Please select a file to upload.")
         return
 
-    remote_path = os.path.join(current_path, os.path.basename(file_path)).replace("\\", "/")
+    filename = os.path.basename(file_path)
+    remote_path = os.path.join(current_path, filename).replace("\\", "/")
+
+    if file_exists(filename):
+        user_choice = messagebox.askyesnocancel(
+            "File Exists",
+            f"A file with the name '{filename}' already exists. Do you want to overwrite it?"
+        )
+        if user_choice is None:
+            status_label.config(text="Upload Cancelled")
+            return
+        elif not user_choice:
+            filename = f"{os.path.splitext(filename)[0]}_copy{os.path.splitext(filename)[1]}"
+            remote_path = os.path.join(current_path, filename).replace("\\", "/")
 
     if sftp_client:
         try:
@@ -73,6 +86,20 @@ def upload_file():
             status_label.config(text=f"FTP Upload Failed: {e}")
     else:
         messagebox.showerror("Error", "Please connect to a server first.")
+
+def file_exists(filename):
+    try:
+        if sftp_client:
+            files = sftp_client.listdir(current_path)
+        elif ftp_client:
+            files = ftp_client.nlst(current_path)
+            files = [os.path.basename(file) for file in files]
+        else:
+            return False
+        return filename in files
+    except Exception as e:
+        status_label.config(text=f"Error checking file existence: {e}")
+        return False
 
 def list_files():
     file_list.delete(0, tk.END)
