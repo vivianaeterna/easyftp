@@ -9,6 +9,34 @@ sftp_client = None
 ftp_client = None
 current_path = "/"
 
+def show_elements():
+    # Show all elements under the connect buttons
+    file_path_label.grid(row=4, column=0)
+    file_path_entry.grid(row=4, column=1)
+    browse_button.grid(row=4, column=2)
+    upload_button.grid(row=5, column=1)
+    status_label.grid(row=6, column=0, columnspan=3)
+    path_label.grid(row=7, column=0, columnspan=3)
+    go_up_button.grid(row=8, column=0, columnspan=3)
+    refresh_button.grid(row=9, column=0)
+    delete_button.grid(row=9, column=1)
+    file_list_label.grid(row=10, column=0, columnspan=3)
+    file_list.grid(row=11, column=0, columnspan=3)
+
+def hide_elements():
+    # Hide all elements under the connect buttons
+    file_path_label.grid_remove()
+    file_path_entry.grid_remove()
+    browse_button.grid_remove()
+    upload_button.grid_remove()
+    status_label.grid_remove()
+    path_label.grid_remove()
+    go_up_button.grid_remove()
+    refresh_button.grid_remove()
+    delete_button.grid_remove()
+    file_list_label.grid_remove()
+    file_list.grid_remove()
+
 def connect_sftp():
     global sftp_client, current_path
     host = host_entry.get()
@@ -21,7 +49,8 @@ def connect_sftp():
         transport.connect(username=username, password=password)
         sftp_client = paramiko.SFTPClient.from_transport(transport)
         status_label.config(text="SFTP Connected")
-        current_path = "/"
+        current_path = "/"        
+        show_elements()
         list_files()
     except Exception as e:
         status_label.config(text=f"SFTP Connection Failed: {e}")
@@ -38,10 +67,25 @@ def connect_ftp():
         ftp_client.login(user=username, passwd=password)
         status_label.config(text="FTP Connected")
         current_path = "/"
+        show_elements()
         list_files()
     except Exception as e:
         status_label.config(text=f"FTP Connection Failed: {e}")
         ftp_client = None
+
+def disconnect():
+    global sftp_client, ftp_client
+    if sftp_client:
+        sftp_client.close()
+        sftp_client = None
+        status_label.config(text="SFTP Disconnected")
+    elif ftp_client:
+        ftp_client.quit()
+        ftp_client = None
+        status_label.config(text="FTP Disconnected")
+    file_list.delete(0, tk.END)
+    path_label.config(text="Current Path: ")
+    hide_elements()
 
 def browse_files():
     file_path = filedialog.askopenfilename()
@@ -207,8 +251,13 @@ connect_sftp_button.grid(row=3, column=0)
 connect_ftp_button = tk.Button(root, text="Connect FTP", command=connect_ftp)
 connect_ftp_button.grid(row=3, column=1)
 
+# Disconnect Button
+disconnect_button = tk.Button(root, text="Disconnect", command=disconnect)
+disconnect_button.grid(row=3, column=2)
+
 # File Path
-tk.Label(root, text="File Path").grid(row=4, column=0)
+file_path_label = tk.Label(root, text="File Path")
+file_path_label.grid(row=4, column=0)
 file_path_entry = tk.Entry(root)
 file_path_entry.grid(row=4, column=1)
 browse_button = tk.Button(root, text="Browse", command=browse_files)
@@ -245,6 +294,9 @@ file_list = tk.Listbox(root, width=50)
 file_list.grid(row=11, column=0, columnspan=3)
 file_list.bind('<<ListboxSelect>>', on_select)
 file_list.bind('<Double-1>', change_directory)
+
+# Initially hide all elements under the connect buttons
+hide_elements()
 
 # Run the application
 root.mainloop()
